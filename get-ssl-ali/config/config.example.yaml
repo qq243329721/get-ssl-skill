@@ -1,0 +1,42 @@
+aliyun:
+  access_key_id: "${ALIYUN_ACCESS_KEY_ID}"
+  access_key_secret: "${ALIYUN_ACCESS_KEY_SECRET}"
+
+cert_storage:
+  base_dir: "./certs"
+
+# ACME certificate provider (Let's Encrypt / ZeroSSL)
+# DNS-01 validation via Aliyun DNS API
+acme:
+  enabled: true
+  directory_url: "https://acme-v02.api.letsencrypt.org/directory"
+  email: "${ACME_EMAIL}"
+  account_key_path: "./certs/acme_account.key"
+
+domains:
+  - domain: "example.com"
+    servers:
+      - host: "192.168.1.10"
+        port: 22
+        user: "root"
+        password: "${SSH_PASS_SERVER1}"
+        cert_path: "/etc/nginx/ssl/example.com/fullchain.pem"
+        key_path: "/etc/nginx/ssl/example.com/privkey.pem"
+        reload_cmd: "nginx -t && systemctl reload nginx"
+
+  - domain: "api.example.com"
+    servers:
+      - host: "192.168.1.20"
+        port: 22
+        user: "root"
+        password: "${SSH_PASS_SERVER2}"
+        cert_path: "/etc/nginx/ssl/api.example.com/fullchain.pem"
+        key_path: "/etc/nginx/ssl/api.example.com/privkey.pem"
+        reload_cmd: "nginx -t && systemctl reload nginx"
+
+options:
+  poll_interval: 10         # DNS validation polling interval (seconds)
+  poll_timeout: 300         # Max wait time (seconds)
+  renew_before_days: 14     # Trigger renewal N days before expiry
+  backup_old_cert: true     # Backup old certs before deploying
+  max_cert_validity_days: 199  # Max certificate validity days
