@@ -1,83 +1,117 @@
-# Aliyun SSL Manager
+# 阿里云 SSL 证书管理工具
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-SSL certificate automation tool using ACME (Let's Encrypt) with Alibaba Cloud DNS-01 validation. Apply, deploy, and renew SSL certificates via CLI or [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Skill.
+[English](README_EN.md)
 
-## Features
+基于 ACME (Let's Encrypt) + 阿里云 DNS 的 SSL 证书自动化工具，支持证书申请、部署、批量续期，可作为 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 技能使用。
 
-- **check** - Check ACME status and certificate expiry
-- **apply** - Apply for new certificate via ACME (Let's Encrypt) with automatic DNS-01 validation
-- **deploy** - Deploy certificates to servers via SSH/SFTP (paramiko)
-- **renew** - Batch renewal: check → apply → deploy
-- **list** - List configured domains and servers
-- **diagnose** - Diagnose ACME connectivity and API status
+## 功能特性
 
-## Quick Start
+- **check** - 检查 ACME 状态和证书过期时间
+- **apply** - 通过 ACME (Let's Encrypt) 自动申请免费证书，DNS-01 自动验证
+- **deploy** - 通过 SSH/SFTP 部署证书到服务器
+- **renew** - 批量续期：检查 → 申请 → 部署
+- **list** - 列出已配置的域名和服务器
+- **diagnose** - 诊断 ACME 连接和 API 状态
 
-### 1. Install Dependencies
+## 快速开始
+
+### 1. 安装依赖
 
 ```bash
 pip install -e ./get-ssl-ali
 ```
 
-> Requires Python 3.9+
+> 需要 Python 3.9+
 
-### 2. Configure
+### 2. 配置
 
 ```bash
 cp get-ssl-ali/config/config.example.yaml get-ssl-ali/config/config.yaml
-# Edit config.yaml with your settings
 ```
 
-### 3. Set Environment Variables
+编辑 `config.yaml`，主要配置项说明：
 
-```bash
-export ALIYUN_ACCESS_KEY_ID=your_key_id
-export ALIYUN_ACCESS_KEY_SECRET=your_key_secret
-export ACME_EMAIL=your_email@example.com
-export SSH_PASS_SERVER1=your_ssh_password
+```yaml
+# 阿里云 API 凭证（建议通过环境变量设置）
+aliyun:
+  access_key_id: "${ALIYUN_ACCESS_KEY_ID}"
+  access_key_secret: "${ALIYUN_ACCESS_KEY_SECRET}"
+
+# ACME 配置（Let's Encrypt）
+acme:
+  enabled: true
+  email: "${ACME_EMAIL}"                # 用于注册 Let's Encrypt 账户
+
+# 域名和服务器配置（可配置多个域名，每个域名可部署到多台服务器）
+domains:
+  - domain: "example.com"               # 要申请证书的域名
+    servers:
+      - host: "192.168.1.10"            # 服务器 IP
+        port: 22                        # SSH 端口
+        user: "root"                    # SSH 用户名
+        password: "${SSH_PASS_SERVER1}" # SSH 密码（建议通过环境变量设置）
+        cert_path: "/etc/nginx/ssl/example.com/fullchain.pem"  # 证书部署路径
+        key_path: "/etc/nginx/ssl/example.com/privkey.pem"     # 私钥部署路径
+        reload_cmd: "nginx -t && systemctl reload nginx"       # 部署后执行的命令
+
+# 可选参数
+options:
+  renew_before_days: 14   # 提前多少天续期
+  backup_old_cert: true   # 部署前备份旧证书
 ```
 
-### 4. Run
+> 支持 `${ENV_VAR}` 语法引用环境变量，敏感信息不要直接写在配置文件中。
+
+### 3. 设置环境变量
 
 ```bash
-# Set PYTHONPATH
+export ALIYUN_ACCESS_KEY_ID=你的AccessKeyID
+export ALIYUN_ACCESS_KEY_SECRET=你的AccessKeySecret
+export ACME_EMAIL=你的邮箱@example.com
+export SSH_PASS_SERVER1=你的SSH密码
+```
+
+### 4. 运行
+
+```bash
+# 设置 PYTHONPATH
 export PYTHONPATH=get-ssl-ali/scripts
 
-# List configured domains
+# 列出已配置的域名
 python -m aliyun_ssl_manager list
 
-# Check ACME status and cert expiry
+# 检查 ACME 状态和证书过期时间
 python -m aliyun_ssl_manager check
 
-# Apply for a certificate (dry-run first)
+# 申请证书（先 dry-run 预览）
 python -m aliyun_ssl_manager apply --domain example.com --dry-run
 python -m aliyun_ssl_manager apply --domain example.com
 
-# Deploy to servers
+# 部署到服务器
 python -m aliyun_ssl_manager deploy --domain example.com --dry-run
 python -m aliyun_ssl_manager deploy --domain example.com
 
-# Batch renew all due certificates
+# 批量续期所有即将过期的证书
 python -m aliyun_ssl_manager renew --dry-run
 python -m aliyun_ssl_manager renew
 ```
 
-## Install as Claude Code Skill
+## 作为 Claude Code 技能使用
 
-Copy or symlink `get-ssl-ali/` to your project's `.claude/skills/` directory:
+将 `get-ssl-ali/` 复制或软链接到项目的 `.claude/skills/` 目录：
 
 ```bash
-# Option 1: Symlink (recommended for development)
-ln -s /path/to/custom-skills/get-ssl-ali .claude/skills/get-ssl-ali
+# 方式一：软链接（推荐，方便开发）
+ln -s /path/to/get-ssl-ali .claude/skills/get-ssl-ali
 
-# Option 2: Copy
-cp -r /path/to/custom-skills/get-ssl-ali .claude/skills/get-ssl-ali
+# 方式二：复制
+cp -r /path/to/get-ssl-ali .claude/skills/get-ssl-ali
 ```
 
-Then use in Claude Code:
+然后在 Claude Code 中使用：
 
 ```
 /get-ssl-ali check
@@ -87,67 +121,68 @@ Then use in Claude Code:
 /get-ssl-ali renew
 ```
 
-Apply/deploy/renew will always show a dry-run plan first and require confirmation.
+apply/deploy/renew 会先执行 dry-run 预览操作计划，确认后才实际执行。
 
-## Certificate Apply Flow (ACME 6 Steps)
+## 证书申请流程（ACME 6 步）
 
-1. **Register/load ACME account** → Account key management
-2. **Create ACME order** → Get dns-01 challenge for domain
-3. **Add DNS TXT record** (Aliyun DNS API) → Auto-add validation record
-4. **Answer ACME challenge** → Notify Let's Encrypt to verify
-5. **Poll ACME order** → Wait for validation + finalize (up to 5 min)
-6. **Save cert + cleanup DNS** → Store fullchain.pem + privkey.pem locally
+1. **注册/加载 ACME 账户** → 账户密钥管理
+2. **创建 ACME 订单** → 获取域名的 dns-01 验证挑战
+3. **添加 DNS TXT 记录**（阿里云 DNS API）→ 自动添加验证记录
+4. **应答 ACME 挑战** → 通知 Let's Encrypt 进行验证
+5. **轮询 ACME 订单** → 等待验证完成并签发证书（最多 5 分钟）
+6. **保存证书 + 清理 DNS** → 存储 fullchain.pem + privkey.pem 到本地
 
-## Deploy Flow
+## 部署流程
 
-1. SSH connect (paramiko)
-2. Backup old certificates
-3. SFTP upload new cert and key
-4. Set permissions (cert: 644, key: 600)
-5. `nginx -t` validation
-6. Reload nginx (auto-rollback on failure)
+1. SSH 连接服务器（paramiko）
+2. 备份旧证书
+3. SFTP 上传新证书和私钥
+4. 设置文件权限（证书: 644，私钥: 600）
+5. `nginx -t` 配置验证
+6. 重载 nginx（失败时自动回滚）
 
-## Project Structure
+## 项目结构
 
 ```
-custom-skills/
-├── get-ssl-ali/                    # Skill package (can be installed to .claude/skills/)
-│   ├── SKILL.md                    # Claude Code skill definition
+get-ssl-ali/
+├── get-ssl-ali/                    # 技能包（可安装到 .claude/skills/）
+│   ├── SKILL.md                    # Claude Code 技能定义
 │   ├── pyproject.toml
 │   ├── config/
-│   │   ├── config.example.yaml
-│   │   └── config.yaml             # (gitignored)
-│   ├── certs/                      # (gitignored)
+│   │   ├── config.example.yaml     # 配置示例
+│   │   └── config.yaml             # 实际配置（已 gitignore）
+│   ├── certs/                      # 证书存储（已 gitignore）
 │   └── scripts/aliyun_ssl_manager/
-│       ├── __main__.py             # python -m entry
-│       ├── cli.py                  # argparse subcommands
-│       ├── config.py               # YAML loading + env var substitution
-│       ├── models.py               # dataclass models
+│       ├── __main__.py             # python -m 入口
+│       ├── cli.py                  # 命令行参数解析
+│       ├── config.py               # YAML 配置加载 + 环境变量替换
+│       ├── models.py               # 数据模型
 │       ├── api/
-│       │   ├── acme_client.py      # ACME v2 protocol (Let's Encrypt)
-│       │   ├── cas_client.py       # Aliyun CAS API (read-only, legacy)
-│       │   └── dns_client.py       # Aliyun DNS API
+│       │   ├── acme_client.py      # ACME v2 协议（Let's Encrypt）
+│       │   ├── cas_client.py       # 阿里云 CAS API（只读，兼容旧版）
+│       │   └── dns_client.py       # 阿里云 DNS API
 │       ├── core/
-│       │   ├── cert_manager.py     # ACME 6-step flow orchestration
-│       │   ├── deployer.py         # SSH deployment (paramiko)
-│       │   └── validator.py        # DNS validation management
+│       │   ├── cert_manager.py     # ACME 6 步流程编排
+│       │   ├── deployer.py         # SSH/SFTP 部署
+│       │   └── validator.py        # DNS 验证管理
 │       └── utils/
-│           ├── logger.py           # Structured logging
-│           └── retry.py            # Polling utility
+│           ├── logger.py           # 日志工具
+│           └── retry.py            # 轮询重试工具
 ├── LICENSE
-└── README.md
+├── README.md
+└── README_EN.md
 ```
 
-## Contributing
+## 参与贡献
 
-Contributions are welcome! Feel free to open an issue or submit a pull request.
+欢迎提交 Issue 和 Pull Request！
 
-1. Fork this repository
-2. Create your feature branch (`git checkout -b feature/awesome-feature`)
-3. Commit your changes (`git commit -m 'feat: add awesome feature'`)
-4. Push to the branch (`git push origin feature/awesome-feature`)
-5. Open a Pull Request
+1. Fork 本仓库
+2. 创建功能分支 (`git checkout -b feature/awesome-feature`)
+3. 提交更改 (`git commit -m 'feat: 添加某个功能'`)
+4. 推送到分支 (`git push origin feature/awesome-feature`)
+5. 发起 Pull Request
 
-## License
+## 许可证
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+本项目基于 MIT 许可证开源，详见 [LICENSE](LICENSE) 文件。
