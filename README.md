@@ -104,10 +104,15 @@ python -m aliyun_ssl_manager renew
 将 `get-ssl-ali/` 复制或软链接到项目的 `.claude/skills/` 目录：
 
 ```bash
-# 方式一：软链接（推荐，方便开发）
+# 方式一：软链接（Linux/macOS，推荐，方便开发）
 ln -s /path/to/get-ssl-ali .claude/skills/get-ssl-ali
 
-# 方式二：复制
+# 方式二：软链接（Windows — 使用 PowerShell，无需管理员权限）
+# ln -s 在 Windows 上会创建普通目录副本而非真正的软连接，
+# 应使用 Junction（目录联接）代替：
+New-Item -ItemType Junction -Path ".claude\skills\get-ssl-ali" -Target "\path\to\get-ssl-ali\get-ssl-ali"
+
+# 方式三：复制
 cp -r /path/to/get-ssl-ali .claude/skills/get-ssl-ali
 ```
 

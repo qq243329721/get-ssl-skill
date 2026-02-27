@@ -104,10 +104,15 @@ python -m aliyun_ssl_manager renew
 Copy or symlink `get-ssl-ali/` to your project's `.claude/skills/` directory:
 
 ```bash
-# Option 1: Symlink (recommended for development)
+# Option 1: Symlink (Linux/macOS — recommended for development)
 ln -s /path/to/get-ssl-ali .claude/skills/get-ssl-ali
 
-# Option 2: Copy
+# Option 2: Symlink (Windows — use PowerShell, no admin required)
+# Note: ln -s on Windows creates a plain directory copy, NOT a real symlink.
+# Use a Junction (directory link) instead:
+New-Item -ItemType Junction -Path ".claude\skills\get-ssl-ali" -Target "\path\to\get-ssl-ali\get-ssl-ali"
+
+# Option 3: Copy
 cp -r /path/to/get-ssl-ali .claude/skills/get-ssl-ali
 ```
 
